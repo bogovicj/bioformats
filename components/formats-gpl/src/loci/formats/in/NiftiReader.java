@@ -248,8 +248,9 @@ public class NiftiReader extends FormatReader {
     m.sizeY = in.readShort();
     m.sizeZ = in.readShort();
     m.sizeT = in.readShort();
+    m.sizeC = in.readShort();
 
-    in.skipBytes(20);
+    in.skipBytes(18);
     short dataType = in.readShort();
     in.skipBytes(36);
     pixelOffset = (int) in.readFloat();
@@ -260,11 +261,11 @@ public class NiftiReader extends FormatReader {
 
     LOGGER.info("Populating core metadata");
 
-    m.sizeC = 1;
     if (getSizeZ() == 0) m.sizeZ = 1;
     if (getSizeT() == 0) m.sizeT = 1;
+    if (getSizeC() == 0) m.sizeC = 1;
 
-    m.imageCount = getSizeZ() * getSizeT();
+    m.imageCount = getSizeZ() * getSizeT() * getSizeC();
     m.indexed = false;
     m.dimensionOrder = "XYCZT";
 
@@ -345,8 +346,7 @@ public class NiftiReader extends FormatReader {
   private void populateExtendedMetadata() throws IOException {
     in.seek(39);
     byte sliceOrdering = in.readByte();
-    in.skipBytes(8);
-    short dim5 = in.readShort();
+    in.skipBytes(10);
     short dim6 = in.readShort();
     short dim7 = in.readShort();
     short dim8 = in.readShort();
@@ -467,7 +467,7 @@ public class NiftiReader extends FormatReader {
     addGlobalMeta("Height", getSizeY());
     addGlobalMeta("Number of Z slices", getSizeZ());
     addGlobalMeta("Number of time points", getSizeT());
-    addGlobalMeta("Dimension 5", dim5);
+    addGlobalMeta("Dimension 5", getSizeC());
     addGlobalMeta("Dimension 6", dim6);
     addGlobalMeta("Dimension 7", dim7);
     addGlobalMeta("Dimension 8", dim8);
