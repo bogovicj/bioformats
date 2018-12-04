@@ -63,6 +63,18 @@ public class NiftiReader extends FormatReader {
   /** Code for microseconds. */
   private static final int UNITS_USEC = 24;
 
+  /** Intent code for RGB **/
+  private static final short INTENT_RGB = 2003;
+  
+  /** Intent code for RGBA **/
+  private static final short INTENT_RGBA = 2004;
+  
+  /** DataType RGB **/
+  private static final short DATATYPE_RGB = 128;
+  
+  /** DataType RGBA **/
+  private static final short DATATYPE_RGBA = 2304;
+  
   // -- Fields --
 
   /** Offset to the pixel data in the .img file. */
@@ -83,6 +95,7 @@ public class NiftiReader extends FormatReader {
   /** Constructs a new NIfTI reader. */
   public NiftiReader() {
     super("NIfTI", new String[] {"nii", "img", "hdr", "nii.gz"});
+    System.out.println("nii reader");
     suffixSufficient = false;
     domains = new String[] {FormatTools.MEDICAL_DOMAIN,
       FormatTools.UNKNOWN_DOMAIN};
@@ -249,9 +262,13 @@ public class NiftiReader extends FormatReader {
     m.sizeZ = in.readShort();
     m.sizeT = in.readShort();
     m.sizeC = in.readShort();
+    
+    // infer whether this is an rgb from intent code
+//    m.rgb = ( intentCode == INTENT_RGB && getSizeC() == 3 );
 
     in.skipBytes(18);
     short dataType = in.readShort();
+    System.out.println( "dataType: " + dataType );
     in.skipBytes(36);
     pixelOffset = (int) in.readFloat();
 
@@ -266,13 +283,27 @@ public class NiftiReader extends FormatReader {
     if (getSizeC() == 0) m.sizeC = 1;
 
     m.imageCount = getSizeZ() * getSizeT() * getSizeC();
+    System.out.println( "imageCount: " + m.imageCount );
+    
     m.indexed = false;
     m.dimensionOrder = "XYCZT";
+//    m.dimensionOrder = "XYZTC";
+
 
     populatePixelType(dataType);
-    m.rgb = getSizeC() > 1;
+    m.rgb = getSizeC() > 1 && ( dataType == DATATYPE_RGB || dataType == DATATYPE_RGBA );
     m.interleaved = isRGB();
 
+    System.out.println( "is rgb: " + isRGB() );
+    System.out.println( "is interleaved: " + m.interleaved );
+    
+//    m.rgb = false;
+//    System.out.println( "interleaved = true" );
+//    m.interleaved = true;
+//    m.interleaved = false;
+    
+    System.out.println( "intent code: " + m.seriesMetadata.get( "Intent code" ));
+    
     LOGGER.info("Populating MetadataStore");
 
     MetadataStore store = makeFilterMetadata();
@@ -344,6 +375,7 @@ public class NiftiReader extends FormatReader {
   }
 
   private void populateExtendedMetadata() throws IOException {
+	System.out.println( "extended metadata ");
     in.seek(39);
     byte sliceOrdering = in.readByte();
     in.skipBytes(10);
@@ -368,6 +400,7 @@ public class NiftiReader extends FormatReader {
     sliceThickness = in.readFloat();
     deltaT = in.readFloat();
     in.skipBytes(16);
+
 
     float scaleSlope = in.readFloat();
     float scaleIntercept = in.readFloat();
